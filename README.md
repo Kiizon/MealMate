@@ -1,6 +1,17 @@
 # MealMate
 
-MealMate is an intelligent grocery deal aggregator and recipe generator. It finds local deals based on postal codes and suggests budget-friendly recipes using AI.
+## Overview
+
+MealMate is a budget-conscious recipe generator that helps users save money by creating meal plans based on local grocery deals. Born from the motivation to be frugal and make the most of every dollar, it transforms weekly flyer discounts into practical, cost-effective recipes. Simply enter your postal code and let MealMate do the work of finding deals and suggesting what to cook.
+
+<!-- Main page screenshot -->
+![MealMate Main Page](images/main-page.png)
+
+## Technical Information
+
+MealMate uses a React frontend that sends postal-code–based requests to a GCP Cloud Function, which handles all backend logic including deal aggregation, caching, and AI orchestration. The Cloud Function scrapes localized grocery deals, stores and reuses them in Firestore, and generates budget-optimized recipes via Gemini only when needed. The combined deals and recipes are then returned as a single response for efficient client-side rendering.
+
+![Architecture Diagram](images/architecture-diagram.png)
 
 ## Project Structure
 
@@ -22,13 +33,6 @@ The project is divided into two main components:
   - `functions_framework`: (Optional) For Cloud Function compatibility.
   - `services/`: Placeholder for Deals logic and AI providers.
 
-## Getting Started
-
-### Prerequisites
-- Node.js & npm
-- Python 3.9+
-- Google Cloud Credentials (for Firestore/Gemini)
-
 ### Running the Frontend
 ```bash
 cd frontend
@@ -48,16 +52,4 @@ uvicorn main:app --reload
 # Documentation at http://localhost:8000/docs
 ```
 
-## Migration Notes
-- Legacy code has been moved to `_legacy/` for reference.
-- Next.js and FastAPI scaffolds are set up as fresh starting points.
-
-## Architecture
-1. **User** enters postal code on Frontend.
-2. **Frontend** sends request to `/api/get-meals`.
-3. **Backend** checks **Firestore** cache for deals in that area.
-   - If missing, triggers **Scraper** (Cloud Function logic) to get fresh deals.
-4. **Backend** uses **Gemini AI** to generate recipes based on those deals.
-5. **Backend** returns combined JSON to Frontend.
-6. **Frontend** renders deals and recipes.
 
