@@ -1,48 +1,50 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Optional, List
+from fastapi.middleware.cors import CORSMiddleware
+from services.flipp import get_deals_for_postal_code
+import re
 import os
+app = FastAPI(title  = "MealMate API", description = "Backend for MealMate")
 
-app = FastAPI(title="MealMate API", description="Backend for MealMate")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_credentials=True,
+    allow_headers=["*"]
+)
 
-class DealRequest(BaseModel):
-    postal_code: str
-    preferences: Optional[str] = None
-
-class MealResponse(BaseModel):
-    deals: List[dict]
-    recipes: List[dict]
-    assistant_message: str
-
+def validate_postal_code(postal_code: str) -> bool:
+    pattern = r'^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$'
+    if re.match(pattern, postal_code):
+        return True
+    else:
+        return False
+    
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to MealMate API"}
+    return {"message": "Welcome to the MealMate API"}
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {"status": "a-ok!"}
 
-@app.post("/api/get-meals", response_model=MealResponse)
-async def get_meals(request: DealRequest):
-    """
-    Main endpoint:
-    1. Aggregates grocery deals for the postal code (from Firestore/Scraper).
-    2. Generates budget-optimized recipes via Gemini.
-    3. Returns combined response.
-    """
-    # Placeholder logic
-    # TODO: Implement scraping/lookup logic
-    # TODO: Implement Gemini AI logic
-    
+@app.get("/api/deals/{postal_code}")
+def get_deals(postal_code: str):
+    postal_code = postal_code.replace(" ", "").upper()
+
+    if not validate_postal_code(postal_code):
+        raise HTTPException(
+            status_code = 400,
+            detail = "Invalid postal code format. Use Use format like M5V2H1"
+            )
+    deals = get_deals_for_postal_code(postal_code)
     return {
-        "deals": [{"item": "Placeholder Deal", "price": 0.00}],
-        "recipes": [{"name": "Placeholder Recipe", "ingredients": ["Item A"]}],
-        "assistant_message": f"Deals found for {request.postal_code}. enjoy!"
+        "postal_code": postal_code,
+        "count": len(deals),
+        "deals": deals
     }
-
-
+    
 if __name__ == "__main__":
     import uvicorn
-    # process.env.PORT is for Cloud Run/Functions often, default to 8000 locally
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.eviron.get("PORT", 8000))
+    uvicorn.run(app, host = "0.0.0.0", port = port, reload = True)
