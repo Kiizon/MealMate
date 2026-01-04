@@ -1,8 +1,8 @@
 # Python backend
-server/venv/
-server/__pycache__/
-server/.env
-server/instance/
+api/venv/
+/__pycache__/
+api/.env
+api/instance/
 *.swp
 
 # Node frontend
