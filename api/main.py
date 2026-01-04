@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from services.flipp import get_deals_for_postal_code
+from services.flipp import get_raw_deals_for_postal_code
+from services.normalizer import filter_food_deals, extract_ingredients
 import re
 import os
 app = FastAPI(title  = "MealMate API", description = "Backend for MealMate")
@@ -13,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-def validate_postal_code(postal_code: str) -> bool:
+def validate_postal_code(postal_code: str):
     pattern = r'^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$'
     if re.match(pattern, postal_code):
         return True
@@ -37,11 +38,16 @@ def get_deals(postal_code: str):
             status_code = 400,
             detail = "Invalid postal code format. Use Use format like M5V2H1"
             )
-    deals = get_deals_for_postal_code(postal_code)
+    uncleaned_deals = get_raw_deals_for_postal_code(postal_code)
+    filtered_food_deals = filter_food_deals(uncleaned_deals)
+    ingredients = extract_ingredients(filtered_food_deals)
+    
     return {
         "postal_code": postal_code,
-        "count": len(deals),
-        "deals": deals
+        "total_raw": len(uncleaned_deals),
+        "count": len(filtered_food_deals),
+        "ingredients": ingredients,
+        "deals": filtered_food_deals
     }
     
 if __name__ == "__main__":
