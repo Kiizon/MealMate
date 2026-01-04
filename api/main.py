@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from services.flipp import get_raw_deals_for_postal_code
+from services.flipp import get_raw_deals_for_postal_code, get_grocery_flyer_ids
 from services.normalizer import filter_food_deals, extract_ingredients
 from services.spoonacular import SpoonacularService
 import re
@@ -79,7 +79,51 @@ def get_recipes(postal_code: str, limit: int = 8):
         "recipes": recipes,
     }
 
+@app.get("/api/stores/{postal_code}")
+def get_stores(postal_code: str):
+    """Get grocery stores with flyers for a postal code."""
+    postal_code = postal_code.replace(" ", "").upper()
 
+    if not validate_postal_code(postal_code):
+        raise HTTPException(status_code=400, detail="Invalid postal code")
+
+    flyers = get_grocery_flyer_ids(postal_code)
+
+    if not flyers:
+        return {"stores": []}
+
+    # Get unique merchants
+    stores = [{"name": f["merchant"], "flyer_id": f["id"]} for f in flyers]
+
+    return {
+        "postal_code": postal_code,
+        "stores": stores,
+    }
+
+@app.get("/api/recipes/{postal_code}/{merchant}")
+def get_recipes_by_merchant(postal_code: str, merchant: str, limit: int = 10):
+    """Get recipes based on a specific store's deals."""
+    postal_code = postal_code.replace(" ", "").upper()
+
+    if not validate_postal_code(postal_code):
+        raise HTTPException(status_code=400, detail="Invalid postal code")
+
+    raw_deals = get_raw_deals_for_postal_code(postal_code, merchant = merchant)
+    filtered_food_deals = filter_food_deals(raw_deals)
+    ingredients = extract_ingredients(filtered_food_deals)
+
+    if not ingredients:
+        return {"recipes": [], "ingredients_on_sale": [], "message": "No food ingredients found"}
+
+    recipes = spoonacular.find_recipes_by_ingredients(ingredients, number=limit)
+
+    return {
+        "postal_code": postal_code,
+        "merchant": merchant,
+        "ingredients_on_sale": ingredients,
+        "deals_count": len(filtered_food_deals),
+        "recipes": recipes,
+    }
     
 if __name__ == "__main__":
     import uvicorn

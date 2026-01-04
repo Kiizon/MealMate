@@ -54,7 +54,7 @@ def get_flyer_items(flyer_id: int) -> list[dict]:
     return response.json()
 
 
-def get_raw_deals_for_postal_code(postal_code: str) -> list[dict]:
+def get_raw_deals_for_postal_code(postal_code: str, merchant: str = None) -> list[dict]:
     """
     Main function: Get all grocery deals for a postal code.
     Returns a list of deal dictionaries.
@@ -63,6 +63,9 @@ def get_raw_deals_for_postal_code(postal_code: str) -> list[dict]:
 
     if not grocery_flyers:
         return []
+
+    if merchant:
+        grocery_flyers = [flyer for flyer in grocery_flyers if flyer['merchant'] == merchant]
 
     all_deals = []
     for flyer in grocery_flyers:
